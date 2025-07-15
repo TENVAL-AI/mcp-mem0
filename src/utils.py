@@ -1,9 +1,5 @@
 from mem0 import Memory
 import os
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 
 # Custom instructions for memory processing
 # These aren't being used right now but Mem0 does support adding custom prompting
@@ -18,32 +14,12 @@ Extract the Following Information:
 - Source: Record where this information came from when applicable.
 """
 
-def validate_environment():
-    """Validate that required environment variables are set."""
-    required_vars = ['DATABASE_URL', 'LLM_PROVIDER']
-    missing_vars = [var for var in required_vars if not os.getenv(var)]
-    
-    if missing_vars:
-        raise ValueError(f"Missing required environment variables: {missing_vars}")
-    
-    # Check if DATABASE_URL is properly formatted
-    database_url = os.getenv('DATABASE_URL')
-    if not database_url.startswith('postgresql://'):
-        logging.warning("DATABASE_URL should start with 'postgresql://' for Supabase")
-    
-    logging.info("Environment validation passed")
-
 def get_mem0_client():
-    # Validate environment first
-    validate_environment()
-    
     # Get LLM provider and configuration
     llm_provider = os.getenv('LLM_PROVIDER')
     llm_api_key = os.getenv('LLM_API_KEY')
     llm_model = os.getenv('LLM_CHOICE')
     embedding_model = os.getenv('EMBEDDING_MODEL_CHOICE')
-    
-    logging.info(f"Initializing Mem0 client with provider: {llm_provider}")
     
     # Initialize config dictionary
     config = {}
@@ -111,35 +87,16 @@ def get_mem0_client():
             config["embedder"]["config"]["ollama_base_url"] = embedding_base_url
     
     # Configure Supabase vector store
-    embedding_dims = 1536 if llm_provider == "openai" else 768
-    database_url = os.environ.get('DATABASE_URL', '')
-    
-    # Log the database configuration (without exposing sensitive data)
-    logging.info(f"Configuring Supabase with embedding dimensions: {embedding_dims}")
-    
     config["vector_store"] = {
         "provider": "supabase",
         "config": {
-            "connection_string": database_url,
+            "connection_string": os.environ.get('DATABASE_URL', ''),
             "collection_name": "mem0_memories",
-            "embedding_model_dims": embedding_dims,
-            "table_name": "mem0_memories",
-            "dimension": embedding_dims,
-            "pool_size": 5,  # Limit connection pool
-            "max_overflow": 0  # No overflow connections
+            "embedding_model_dims": 1536 if llm_provider == "openai" else 768
         }
     }
 
     # config["custom_fact_extraction_prompt"] = CUSTOM_INSTRUCTIONS
     
-    logging.info(f"Creating Memory client with config: {config}")
-    logging.info(f"Vector store config: {config.get('vector_store', {})}")
-    
     # Create and return the Memory client
-    try:
-        memory_client = Memory.from_config(config)
-        logging.info("Memory client created successfully")
-        return memory_client
-    except Exception as e:
-        logging.error(f"Error creating Memory client: {e}")
-        raise
+    return Memory.from_config(config)
