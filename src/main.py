@@ -51,7 +51,7 @@ mcp = FastMCP(
 )        
 
 @mcp.tool()
-async def save_memory(ctx: Context, text: str, user_id: str = DEFAULT_USER_ID) -> str:
+async def save_memory(ctx: Context, text: str, user_id: str | int = DEFAULT_USER_ID) -> str:
     """Save information to your long-term memory.
 
     This tool is designed to store any type of information that might be useful in the future.
@@ -60,32 +60,36 @@ async def save_memory(ctx: Context, text: str, user_id: str = DEFAULT_USER_ID) -
     Args:
         ctx: The MCP server provided context which includes the Mem0 client
         text: The content to store in memory, including any relevant details and context
-        user_id: The unique identifier for the user (defaults to "user" if not provided)
+        user_id: The unique identifier for the user (can be string or int, defaults to "user" if not provided)
     """
     try:
+        # Convert user_id to string for consistency
+        user_id_str = str(user_id)
         mem0_client = ctx.request_context.lifespan_context.mem0_client
         messages = [{"role": "user", "content": text}]
-        mem0_client.add(messages, user_id=user_id)
-        return f"Successfully saved memory for user {user_id}: {text[:100]}..." if len(text) > 100 else f"Successfully saved memory for user {user_id}: {text}"
+        mem0_client.add(messages, user_id=user_id_str)
+        return f"Successfully saved memory for user {user_id_str}: {text[:100]}..." if len(text) > 100 else f"Successfully saved memory for user {user_id_str}: {text}"
     except Exception as e:
         return f"Error saving memory: {str(e)}"
 
 @mcp.tool()
-async def get_all_memories(ctx: Context, user_id: str = DEFAULT_USER_ID) -> str:
+async def get_all_memories(ctx: Context, user_id: str | int = DEFAULT_USER_ID) -> str:
     """Get all stored memories for the user.
     
     Call this tool when you need complete context of all previously memories.
 
     Args:
         ctx: The MCP server provided context which includes the Mem0 client
-        user_id: The unique identifier for the user (defaults to "user" if not provided)
+        user_id: The unique identifier for the user (can be string or int, defaults to "user" if not provided)
 
     Returns a JSON formatted list of all stored memories, including when they were created
     and their content. Results are paginated with a default of 50 items per page.
     """
     try:
+        # Convert user_id to string for consistency
+        user_id_str = str(user_id)
         mem0_client = ctx.request_context.lifespan_context.mem0_client
-        memories = mem0_client.get_all(user_id=user_id)
+        memories = mem0_client.get_all(user_id=user_id_str)
         if isinstance(memories, dict) and "results" in memories:
             flattened_memories = [memory["memory"] for memory in memories["results"]]
         else:
@@ -95,7 +99,7 @@ async def get_all_memories(ctx: Context, user_id: str = DEFAULT_USER_ID) -> str:
         return f"Error retrieving memories: {str(e)}"
 
 @mcp.tool()
-async def search_memories(ctx: Context, query: str, user_id: str = DEFAULT_USER_ID, limit: int = 3) -> str:
+async def search_memories(ctx: Context, query: str, user_id: str | int = DEFAULT_USER_ID, limit: int = 3) -> str:
     """Search memories using semantic search.
 
     This tool should be called to find relevant information from your memory. Results are ranked by relevance.
@@ -104,12 +108,14 @@ async def search_memories(ctx: Context, query: str, user_id: str = DEFAULT_USER_
     Args:
         ctx: The MCP server provided context which includes the Mem0 client
         query: Search query string describing what you're looking for. Can be natural language.
-        user_id: The unique identifier for the user (defaults to "user" if not provided)
+        user_id: The unique identifier for the user (can be string or int, defaults to "user" if not provided)
         limit: Maximum number of results to return (default: 3)
     """
     try:
+        # Convert user_id to string for consistency
+        user_id_str = str(user_id)
         mem0_client = ctx.request_context.lifespan_context.mem0_client
-        memories = mem0_client.search(query, user_id=user_id, limit=limit)
+        memories = mem0_client.search(query, user_id=user_id_str, limit=limit)
         if isinstance(memories, dict) and "results" in memories:
             flattened_memories = [memory["memory"] for memory in memories["results"]]
         else:
